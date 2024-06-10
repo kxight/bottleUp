@@ -4,6 +4,8 @@ const CustomError = require('../utils/customError');
 const cookieToken = require('../utils/cookieToken');
 const fileUpload = require('express-fileupload');
 const cloudinary = require('cloudinary').v2;
+const mailHelper = require('../utils/emailHelper');
+const crypto = require('crypto');
 
 exports.signup = BigPromise(async (req, res, next) => {
     let result; 
@@ -66,3 +68,63 @@ exports.logout = BigPromise(async (req, res, next) => {
 
     res.status(200).json({ success: true, message: "Logout success" });
 });
+
+exports.forgotPassword = BigPromise(async (req, res, next) => {
+    const {email} = req.body;
+
+    const user = await User.findOne({email})
+
+    if (!user) {
+        return next(new CustomError('Email does not exist', 404));
+    }
+
+    const resetToken = user.getResetPasswordToken();
+
+    await user.save({ validateBeforeSave: false });
+
+    const resetUrl = `${req.protocol}://${req.get('host')}/password/reset/${resetToken}`;
+
+    const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
+
+    try {
+        await mailHelper({
+            email: user.email,
+            subject: 'Password reset token',
+            message: message
+        });
+
+        res.status(200).json({ success: true, data: 'Email sent' });
+    } catch (error) {
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+
+        await user.save({ validateBeforeSave: false });
+
+        return next(new CustomError(error.message, 500));
+    }
+});
+
+exports.resetPassword = BigPromise(async (req, res, next) => {
+    const token = req.params.token;
+    const { password, passwordConfirm } = req.body;
+
+    const passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await User.findOne({passwordResetToken, passwordResetExpires: { $gt: Date.now() }});
+
+    if (!user) {
+        return next(new CustomError('Invalid token', 400));
+    }
+
+    if (password !== passwordConfirm) {
+        return next(new CustomError('Passwords are not the same!', 400));
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+
+    await user.save();
+
+    cookieToken(user, res);
+});
+    
