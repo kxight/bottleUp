@@ -7,7 +7,7 @@ exports.isLoggedIn = BigPromise(async (req, res, next) => {
   //   const token =
   //     req.cookies.token || req.headers.Authorization.replace("Bearer ", "");
 
-  const token = null;
+  let token = null;
   if (req.cookies.token) {
     token = req.cookies.token;
   } else if (req.headers.Authorization) {
