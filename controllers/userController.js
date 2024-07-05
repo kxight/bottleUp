@@ -164,4 +164,37 @@ exports.changePassword = BigPromise(async (req, res, next) => {
   cookieToken(user, res);
 });
 
+exports.updateUserDetails = BigPromise(async (req, res, next) => {
+  const fieldsToUpdate = {
+    name: req.body.name,
+    email: req.body.email,
+  };
 
+  if (req.files) {
+    if (req.files.photo !== "") {
+      const user = await User.findById(req.user.id);
+      const imageId = user.photo.id;
+
+      await cloudinary.uploader.destroy(imageId);
+
+      let result = await cloudinary.uploader.upload(req.files.photo.tempFilePath, {
+        folder: "users",
+        width: 150,
+        crop: "scale",
+      });
+
+      fieldsToUpdate.photo = {
+        id: result.public_id,
+        secure_url: result.secure_url,
+      };
+    }
+  }
+
+  const user = await User.findByIdAndUpdate(req.user.id, fieldsToUpdate, {
+    new: true,
+    runValidators: true,
+    userFindAndModify: false,
+  });
+
+  res.status(200).json({ success: true, user });
+});
