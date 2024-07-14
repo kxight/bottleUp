@@ -106,3 +106,145 @@ exports.deleteDiary = BigPromise(async (req, res, next) => {
     diary,
   });
 });
+
+exports.addComment = BigPromise(async (req, res, next) => {
+  const { content } = req.body;
+  const diaryId = req.params.id;
+
+  const comment = {
+    user: req.user._id,
+    comment: content,
+  };
+
+  let diary;
+
+  if (diaryId.match(/^[0-9a-fA-F]{24}$/)) {
+    diary = await Diary.findById(diaryId);
+  }
+
+  if (!diary) {
+    return next(new CustomError("No diary found with this id.", 401));
+  }
+
+  diary.comments.push(comment);
+  diary.numberOfComments = diary.comments.length;
+
+  await diary.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    success: true,
+    diary,
+  });
+});
+
+exports.deleteComment = BigPromise(async (req, res, next) => {
+  const { id, commentId } = req.params;
+
+  let diary;
+
+  if (id.match(/^[0-9a-fA-F]{24}$/)) {
+    diary = await Diary.findById(id);
+  }
+
+  if (!diary) {
+    return next(new CustomError("No diary found with this id.", 401));
+  }
+
+  const comments = diary.comments.filter(
+    (cmt) => cmt._id.toString() !== commentId.toString()
+  );
+
+  const numberOfComments = comments.length;
+
+  // update the diary
+  await Diary.findByIdAndUpdate(
+    id,
+    {
+      comments,
+      numberOfComments,
+    },
+    {
+      new: true,
+      runValidators: true,
+      useFindAndModiry: false,
+    }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "comment deleted."
+  });
+});
+
+//   exports.getOnlyCommentForOneDiary = BigPromise(async(req, res, next) => {
+//     const diary = await Diary.findById(req.query.id)
+
+//     res.status(200).json({
+//         success: true,
+//         comments: diary.comments,
+//     })
+//   })
+
+// // // Add and delete a comment in case user can only comment once.
+// exports.addComment = BigPromise(async (req, res, next) => {
+//   const { content } = req.body;
+
+//   const comment = {
+//     user: req.user._id,
+//     comment: content,
+//   };
+
+//   const diary = await Diary.findById(req.params.id);
+
+//   const alreadyComment = diary.comments.find(
+//     (rev) => rev.user.toString() === req.user._id.toString()
+//   );
+
+//   if (alreadyComment) {
+//     diary.comments.forEach((comment) => {
+//       if (comment.user.toString() === req.user._id.toString()) {
+//         comment.comment = content;
+//       }
+//     });
+//   } else {
+//     diary.comments.push(comment);
+//     diary.numberOfComments = diary.comments.length;
+//   }
+
+//   await diary.save({ validateBeforeSave: false });
+
+//   res.status(200).json({
+//     success: true,
+//     diary,
+//   });
+// });
+
+// exports.deleteComment = BigPromise(async (req, res, next) => {
+//   const { diaryId } = req.query;
+
+//   const diary = await Diary.findById(diaryId);
+
+//   const comments = diary.comments.filter(
+//     (rev) => rev.user.toString() !== req.user._id.toString()
+//   );
+
+//   const numberOfComments = comments.length;
+
+//   // update the diary
+//   await Diary.findByIdAndUpdate(
+//     diaryId,
+//     {
+//       comments,
+//       numberOfComments,
+//     },
+//     {
+//       new: true,
+//       runValidators: true,
+//       useFindAndModiry: false,
+//     }
+//   );
+
+//   res.status(200).json({
+//     success: true,
+//   });
+// });

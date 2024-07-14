@@ -18,11 +18,15 @@ const diarySchema = new mongoose.Schema({
     default: "happy",
   },
   isPublic: { type: Boolean, required: true, default: false },
+  numberOfComments: {
+    type: Number,
+    default: 0,
+  },
   comments: [
     {
       user: { type: mongoose.Schema.ObjectId, ref: "User", required: true },
-      body: { type: String, required: true },
-      date: Date,
+      comment: { type: String, required: true },
+      date: { type: Date, default: Date.now },
     },
   ],
   createdAt: { type: Date, default: Date.now },
@@ -31,7 +35,7 @@ const diarySchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
-  }
+  },
   //   photos: [
   //     {
   //       id: { type: String, required: true },
