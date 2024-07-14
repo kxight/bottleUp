@@ -42,11 +42,67 @@ exports.getAllDiary = BigPromise(async (req, res, next) => {
   });
 });
 
-// exports.getDiary = BigPromise(async (req, res, next) => {
-//     const params = req.params
-//     console.log(params)
-//     res.status(200).json({
-//         success: true,
-//         product
-//     })
-// })
+exports.getDiary = BigPromise(async (req, res, next) => {
+  const diaryId = req.params.id;
+  let diary;
+
+  if (diaryId.match(/^[0-9a-fA-F]{24}$/)) {
+    diary = await Diary.findById(diaryId);
+  }
+
+  if (!diary) {
+    return next(new CustomError("No product found with this id.", 401));
+  }
+
+  res.status(200).json({
+    success: true,
+    diary,
+  });
+});
+
+exports.updateDiary = BigPromise(async (req, res, next) => {
+  const diaryId = req.params.id;
+  let diary;
+
+  if (diaryId.match(/^[0-9a-fA-F]{24}$/)) {
+    diary = await Diary.findById(diaryId);
+  }
+
+  if (!diary) {
+    return next(new CustomError("No diary found with this id.", 401));
+  }
+
+  req.body.updatedAt = new Date();
+
+  diary = await Diary.findByIdAndUpdate(diaryId, req.body, {
+    new: true,
+    runValidators: true,
+    useFindAndModiry: false,
+  });
+
+  res.status(200).json({
+    success: true,
+    diary,
+  });
+});
+
+exports.deleteDiary = BigPromise(async (req, res, next) => {
+  const diaryId = req.params.id;
+  let diary;
+
+  if (diaryId.match(/^[0-9a-fA-F]{24}$/)) {
+    diary = await Diary.findById(diaryId);
+  }
+
+  if (!diary) {
+    return next(new CustomError("No diary found with this id.", 401));
+  }
+
+  diary = await Diary.findByIdAndDelete(diaryId);
+
+  res.status(200).json({
+    success: true,
+    message: "diary was deleted.",
+    diary,
+  });
+});
