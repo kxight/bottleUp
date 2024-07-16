@@ -19,7 +19,7 @@ class WhereClause {
         }
       : {};
 
-    console.log(searchword)
+    // console.log(searchword)
     this.base = this.base.find({ ...searchword });
     return this;
   }
@@ -34,10 +34,10 @@ class WhereClause {
     // convert bigQ into a string => copyQ
     let stringOfCopyQ = JSON.stringify(copyQ);
 
-    stringOfCopyQ = stringOfCopyQ.replace(/\b(gte|lte|gt|lt)\b/g, (m) => `$${m}`);
+    stringOfCopyQ = stringOfCopyQ.replace(/\b(gte|lte|gt|lt|ne)\b/g, (m) => `$${m}`);
 
     const jsonOfCopyQ = JSON.parse(stringOfCopyQ);
-    console.log(jsonOfCopyQ)
+    // console.log(jsonOfCopyQ)
 
     this.base = this.base.find(jsonOfCopyQ);
     return this
@@ -57,3 +57,4 @@ class WhereClause {
 }
 
 module.exports = WhereClause;
+

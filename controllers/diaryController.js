@@ -60,6 +60,69 @@ exports.getDiary = BigPromise(async (req, res, next) => {
   });
 });
 
+exports.getDiaryFeed = BigPromise(async (req, res, next) => {
+  const currentUser = req.user;
+  const page = parseInt(req.query.page) || 1; 
+  const resultPerPage = 2;
+  const totalDiaryNumber = await Diary.countDocuments();
+
+  const matchStage = { $match: { isPublic: true } };
+
+  if (currentUser) {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    matchStage.$match.$or = [
+      { user: { $ne: currentUser._id } },
+      { user: currentUser._id, createdAt: { $lte: threeDaysAgo } }
+    ];
+  }
+
+  const sortStage = {
+    $sort: {
+      isMine: -1, // Prioritize user's diaries by setting isMine to 1
+      createdAt: -1 // Sort by createdAt descending for all diaries
+    }
+  };
+
+  const projectStage = {
+    $project: {
+      isMine: { $eq: ['$user', currentUser._id] },
+      // Include all other fields
+      _id: 1,
+      content: 1,
+      mood: 1,
+      isPublic: 1,
+      user: 1,
+      numberOfComments: 1,
+      comments: 1,
+      createdAt: 1,
+      updatedAt: 1
+    }
+  };
+
+  const diaries = await Diary.aggregate([
+    matchStage,
+    projectStage,
+    sortStage,
+    {
+      $facet: {
+        totalData: [
+          { $skip: (page - 1) * resultPerPage },
+          { $limit: resultPerPage }
+        ],
+        totalCount: [{ $count: 'total' }]
+      }
+    }
+  ]);
+
+  res.status(200).json({
+    success: true,
+    diaries: diaries[0].totalData,
+    filterdDiaryNumber: diaries[0].totalCount[0].total,
+    totalDiaryNumber,
+  });
+});
+
 exports.updateDiary = BigPromise(async (req, res, next) => {
   const diaryId = req.params.id;
   let diary;
@@ -172,7 +235,7 @@ exports.deleteComment = BigPromise(async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    message: "comment deleted."
+    message: "comment deleted.",
   });
 });
 
