@@ -12,6 +12,7 @@ const diarySchema = new mongoose.Schema({
       "worried",
       "tired",
       "excited",
+      "upset"
     ],
     // required: [true, "Please select your mood"],
     required: true,
